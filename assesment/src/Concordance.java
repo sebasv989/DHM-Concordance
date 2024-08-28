@@ -14,32 +14,26 @@ public class Concordance {
         String[] words = text.split("\\s+");
 
         // Create a map to store word frequencies and sentence numbers
-        Map<String, Map<Integer, List<Integer>>> concordance = new HashMap<>();
+        Map<String, WordInfo> concordance = new HashMap<>();
 
         // Initialize sentence counter
         int sentenceNum = 1;
 
         // Iterate through each word in the text
         for (int i = 0; i < words.length; i++) {
-            String word = words[i].toLowerCase();
+            // Clean the word by removing punctuation and converting to lowercase
+            String word = words[i].replaceAll("[^a-zA-Z]", "").toLowerCase();
+
+            // Skip empty words (in case of multiple punctuation marks)
+            if (word.isEmpty()) continue;
 
             // Check if word is already in the concordance
-            if (!concordance.containsKey(word)) {
-                // If not, add it to the concordance with a frequency of 1
-                Map<Integer, List<Integer>> frequencyAndSentence = new HashMap<>();
-                List<Integer> sentence = new ArrayList<>();
-                sentence.add(sentenceNum);
-                frequencyAndSentence.put(1, sentence);
-                concordance.put(word, frequencyAndSentence);
-            } else {
-                // If so, increment the frequency
-                Map<Integer, List<Integer>> frequencyAndSentence = concordance.get(word);
-                List<Integer> sentence = frequencyAndSentence.get(frequencyAndSentence.keySet().iterator().next());
-                int frequency = frequencyAndSentence.keySet().iterator().next()+1;
-                sentence.add(sentenceNum);
-                frequencyAndSentence.put(frequency, sentence);
-                concordance.put(word, frequencyAndSentence);
-            }
+            concordance.putIfAbsent(word, new WordInfo());
+            WordInfo wordInfo = concordance.get(word);
+
+            // Increment the frequency and add the current sentence number
+            wordInfo.incrementFrequency();
+            wordInfo.addSentenceNumber(sentenceNum);
 
             // Check for end of sentence
             if (words[i].endsWith(".") || words[i].endsWith("!") || words[i].endsWith("?")) {
@@ -53,12 +47,37 @@ public class Concordance {
 
         // Print the concordance
         for (String key : keys) {
-            Map<Integer, List<Integer>> frequencyAndSentence = concordance.get(key);
-            int frequency = frequencyAndSentence.keySet().iterator().next();
-            List<Integer> sentence = frequencyAndSentence.get(frequency);
-            System.out.println(key + " {" + frequency + ":" + String.join(",", sentence.stream().map(Object::toString).collect(Collectors.toList())) + "}");
+            WordInfo wordInfo = concordance.get(key);
+            System.out.println(key + " {" + wordInfo.getFrequency() + ":" +
+                    String.join(",", wordInfo.getSentenceNumbers().stream().map(Object::toString).collect(Collectors.toList())) + "}");
         }
     }
 }
 
+class WordInfo {
+    private int frequency;
+    private final List<Integer> sentenceNumbers;
 
+    public WordInfo() {
+        this.frequency = 0;
+        this.sentenceNumbers = new ArrayList<>();
+    }
+
+    public void incrementFrequency() {
+        this.frequency++;
+    }
+
+    public void addSentenceNumber(int sentenceNumber) {
+        if (!this.sentenceNumbers.contains(sentenceNumber)) {
+            this.sentenceNumbers.add(sentenceNumber);
+        }
+    }
+
+    public int getFrequency() {
+        return frequency;
+    }
+
+    public List<Integer> getSentenceNumbers() {
+        return sentenceNumbers;
+    }
+}
